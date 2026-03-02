@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  easyrbac-common：公共常量、异常、枚举、DTO。
+  被 core 与 starter 依赖，便于 2.0/3.0 时复用或扩展。
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.sun.easyrbac</groupId>
+        <artifactId>easyrbac-sun</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>easyrbac-common</artifactId>
+    <packaging>jar</packaging>
+    <name>EasyRBAC Common</name>
+    <description>RBAC 公共常量、异常、枚举与 DTO</description>
+</project>

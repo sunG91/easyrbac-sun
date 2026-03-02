@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  EasyRBAC 父 POM
+  版本：1.0.0（单体应用）
+  后续可在此根目录下扩展 2.0.0（微服务）、3.0.0（企业级/可视化）子模块或独立分支。
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.sun.easyrbac</groupId>
+    <artifactId>easyrbac-sun</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>EasyRBAC Sun</name>
+    <description>基于 Spring Boot 的 RBAC 权限框架，1.0.0</description>
+    <url>https://github.com/sunG91/easyrbac-sun</url>
+
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>SUNRUI</name>
+            <email>sunr20050503@163.com</email>
+            <url>https://github.com/sunG91</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/sunG91/easyrbac-sun.git</connection>
+        <developerConnection>scm:git:https://github.com/sunG91/easyrbac-sun.git</developerConnection>
+        <url>https://github.com/sunG91/easyrbac-sun</url>
+    </scm>
+
+    <!-- 子模块：便于 2.0/3.0 时新增模块或保持清晰边界 -->
+    <modules>
+        <module>easyrbac-common</module>
+        <module>easyrbac-core</module>
+        <module>easyrbac-spring-boot-starter</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- 最低要求 Spring Boot 3.5.0 -->
+        <spring-boot.version>3.5.0</spring-boot.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot 3.5 起不再发布 parent，使用 BOM 管理版本 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- 本工程子模块 -->
+            <dependency>
+                <groupId>com.sun.easyrbac</groupId>
+                <artifactId>easyrbac-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.easyrbac</groupId>
+                <artifactId>easyrbac-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.easyrbac</groupId>
+                <artifactId>easyrbac-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <encoding>${project.build.sourceEncoding}</encoding>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

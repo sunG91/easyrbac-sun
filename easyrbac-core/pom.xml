@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  easyrbac-core：RBAC 领域模型与仓储接口（无 Spring 强依赖）。
+  便于 2.0 微服务、3.0 企业级时复用核心逻辑。
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.sun.easyrbac</groupId>
+        <artifactId>easyrbac-sun</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>easyrbac-core</artifactId>
+    <packaging>jar</packaging>
+    <name>EasyRBAC Core</name>
+    <description>RBAC 核心领域与仓储接口</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.sun.easyrbac</groupId>
+            <artifactId>easyrbac-common</artifactId>
+        </dependency>
+    </dependencies>
+</project>
