@@ -39,9 +39,7 @@
 
 ---
 
-## 1.0.0 功能清单（对照《EasyRBAC-1.0.0-集成指南》）
-
-### 已实现能力
+## 1.0.0 功能简介
 
 - **最少必配**：配置数据源（`spring.datasource`）与 `rbac.auto.role-mapping`，即可自动建表并同步角色/接口/角色-接口。
 - **四张表**：角色表、接口表、角色-接口关联表、用户-角色关联表；支持自定义表名与字段映射（YAML `field-mapping` 或代码 `RbacFieldMappingCustomizer` + `FieldMappingBuilder`）。
@@ -55,8 +53,6 @@
 - **运行时管理**：`RbacConfigAdminService` 提供 `addRoleDefinition`、`addApi`、`bindRoleApi`、`importFromYaml(InputStream)`、`exportToYaml(OutputStream)`，用于生产环境动态角色/接口与 YAML 导入导出。
 - **扩展点**：`RbacExcludePathCustomizer`、`RbacFieldMappingCustomizer`、`FieldMappingBuilder`、`RbacTokenValidator`（internal/jwt 实现）、`RbacStateTransitionPolicy`（状态流转，业务实现后自行调用）。
 - **错误码**：统一 `RbacException`，错误码见 `RbacConstants`（如 `ERR_ACCESS_DENIED`、`ERR_TOKEN_INVALID` 等）。
-
-**与《EasyRBAC-1.0.0-集成指南》章节对应**：一（集成原则）、二（最少必配与快速开始）、三（自定义表结构）、四（启动时数据同步）、五（校验方式）、六（业务层操作用户与角色）、七（Controller 标注方式）、八（性能与最佳实践）、九（扩展点汇总）、十（配置项速查）、十一（常见问题与排查）、十二（错误码与异常）均在当前实现中有对应支持；详细说明请参阅项目内或上游《EasyRBAC-1.0.0-集成指南》文档。
 
 ---
 
@@ -74,7 +70,7 @@
 
 ### 2. 配置数据源与角色列表
 
-本 Starter 使用应用主数据源（`JdbcTemplate`），请在 `application.yml` 中配置 **spring.datasource**；角色列表等 RBAC 配置使用 **rbac** 前缀，与《EasyRBAC-1.0.0-集成指南》一致。示例：
+本 Starter 使用应用主数据源（`JdbcTemplate`），请在 `application.yml` 中配置 **spring.datasource**，角色列表等 RBAC 配置使用 **rbac** 前缀。示例：
 
 ```yaml
 spring:
@@ -223,10 +219,10 @@ role-apis:
 
 ---
 
-## 版本规划
+## 后续发展方向
 
-- **1.0.0**：单体应用（当前）。
-- **2.0.0**：微服务与中心化权限（规划）。
-- **3.0.0**：企业级与可视化（规划）。
+- **1.0.0（当前）**：单体应用内 RBAC，自动建表与同步、注解标注、internal/JWT 校验、无 Redis/有 Redis 角色缓存、YAML 导入导出与运行时角色/接口管理。
+- **2.0.0（规划）**：面向微服务架构，支持权限中心、各服务与中心同步、网关/服务内统一校验等。
+- **3.0.0（规划）**：企业级能力与可视化配置，如管理后台、权限/角色可视化配置、审计与报表等。
 
 如有问题或建议，欢迎通过上述邮箱或 GitHub/Gitee 仓库联系。
