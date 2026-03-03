@@ -60,16 +60,16 @@
 
 ### 1. 引入依赖
 
-当前 1.0.0 的 jar 托管在 **Gitee** 与 **GitHub** 公开仓库，使用前需先将 jar 安装到本地 Maven 仓库，再在项目中声明依赖。
+当前 1.0.0 的 jar 托管在 **Gitee** 与 **GitHub** 的独立 JAR 仓库，使用前需先将 jar 安装到本地 Maven 仓库，再在项目中声明依赖。
 
 **第一步：下载 jar 并安装到本地 Maven 仓库**
 
-- **Gitee（推荐国内）**  
-  - 仓库内文件：[easyrbac-spring-boot-starter-1.0.0.jar](https://gitee.com/xh_888/easyrbac-sun/blob/master/easyrbac-spring-boot-starter-1.0.0.jar)  
-  - 直接下载：`https://gitee.com/xh_888/easyrbac-sun/raw/master/easyrbac-spring-boot-starter-1.0.0.jar`
 - **GitHub**  
-  - 仓库内文件：[easyrbac-spring-boot-starter-1.0.0.jar](https://github.com/sunG91/easyrbac-sun/blob/master/easyrbac-spring-boot-starter-1.0.0.jar)  
-  - 直接下载：`https://github.com/sunG91/easyrbac-sun/raw/master/easyrbac-spring-boot-starter-1.0.0.jar`
+  - 仓库内文件：[easyrbac-spring-boot-starter-1.0.0.jar](https://github.com/sunG91/easyrbac-sun-jar/blob/main/easyrbac-spring-boot-starter-1.0.0.jar)  
+  - 直接下载：`https://github.com/sunG91/easyrbac-sun-jar/raw/main/easyrbac-spring-boot-starter-1.0.0.jar`
+- **Gitee（推荐国内）**  
+  - 仓库内文件：[easyrbac-spring-boot-starter-1.0.0.jar](https://gitee.com/xh_888/easyrbac-sun-jar/blob/master/easyrbac-spring-boot-starter-1.0.0.jar)  
+  - 直接下载：`https://gitee.com/xh_888/easyrbac-sun-jar/raw/master/easyrbac-spring-boot-starter-1.0.0.jar`
 
 下载后执行（将路径改为你本地的 jar 路径）：
 
