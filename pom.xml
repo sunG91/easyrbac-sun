@@ -50,8 +50,8 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- 最低要求 Spring Boot 3.5.0 -->
-        <spring-boot.version>3.5.0</spring-boot.version>
+        <!-- 最低要求 Spring Boot 3.5.0（使用项目内属性名，避免 IDE 与 BOM 属性混淆） -->
+        <easyrbac.spring-boot.version>3.5.0</easyrbac.spring-boot.version>
     </properties>
 
     <dependencyManagement>
@@ -60,7 +60,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
+                <version>${easyrbac.spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -99,7 +99,7 @@
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>${spring-boot.version}</version>
+                    <version>${easyrbac.spring-boot.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

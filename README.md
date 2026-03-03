@@ -14,7 +14,7 @@
 | **Gitee** | [https://gitee.com/xh_888](https://gitee.com/xh_888) |
 
 - **GitHub 仓库**：[https://github.com/sunG91/easyrbac-sun](https://github.com/sunG91/easyrbac-sun)
-- **Gitee 仓库**：可镜像或独立维护 [https://gitee.com/xh_888](https://gitee.com/xh_888) 下同名项目
+- **Gitee 仓库**：[https://gitee.com/xh_888](https://gitee.com/xh_888) 下同名项目
 
 ---
 
@@ -245,3 +245,4 @@ role-apis:
 - **3.0.0（规划）**：企业级能力与可视化配置，如管理后台、权限/角色可视化配置、审计与报表等。
 
 如有问题或建议，欢迎通过上述邮箱或 GitHub/Gitee 仓库联系。
+1 ·
