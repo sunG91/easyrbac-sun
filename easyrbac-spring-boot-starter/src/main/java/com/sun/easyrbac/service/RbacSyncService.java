@@ -56,6 +56,7 @@ public class RbacSyncService {
 
     /**
      * 执行同步：角色表、接口表、角色-接口表（可选异步由调用方控制）。
+     * 角色来源：优先 YAML role-mapping；若为空则从 rbac.auto.role-enum-class 指定枚举解析。
      */
     public void sync() {
         if (!properties.isEnabled() || !properties.getAuto().isAutoSyncData()) {
@@ -63,7 +64,10 @@ public class RbacSyncService {
         }
         Map<String, String> roleMapping = properties.getAuto().getRoleMapping();
         if (roleMapping == null || roleMapping.isEmpty()) {
-            log.warn("[EasyRBAC] role-mapping 为空，跳过同步");
+            roleMapping = resolveRoleMappingFromEnum();
+        }
+        if (roleMapping == null || roleMapping.isEmpty()) {
+            log.warn("[EasyRBAC] role-mapping 为空且未配置有效 role-enum-class，跳过同步");
             return;
         }
 
@@ -98,6 +102,48 @@ public class RbacSyncService {
                         roleRepository.save(r);
                     }
             );
+        }
+    }
+
+    /**
+     * 从 rbac.auto.role-enum-class 指定的枚举类解析角色映射（编码 -> 名称）。
+     * 枚举常量需标注 @RbacRole(value="编码", name="名称")，name 为空时使用枚举常量名。
+     */
+    private Map<String, String> resolveRoleMappingFromEnum() {
+        String enumClass = properties.getAuto().getRoleEnumClass();
+        if (enumClass == null || enumClass.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            ClassLoader loader = applicationContext.getClassLoader();
+            Class<?> clazz = Class.forName(enumClass.trim(), false, loader != null ? loader : Thread.currentThread().getContextClassLoader());
+            if (!clazz.isEnum()) {
+                log.warn("[EasyRBAC] role-enum-class 不是枚举类: {}", enumClass);
+                return new LinkedHashMap<>();
+            }
+            Object[] constants = clazz.getEnumConstants();
+            if (constants == null) {
+                return new LinkedHashMap<>();
+            }
+            Map<String, String> map = new LinkedHashMap<>();
+            for (Object c : constants) {
+                com.sun.easyrbac.annotation.RbacRole ann = c.getClass().getField(((Enum<?>) c).name()).getAnnotation(com.sun.easyrbac.annotation.RbacRole.class);
+                if (ann == null) continue;
+                String code = ann.value();
+                if (code == null || code.isEmpty()) continue;
+                String name = (ann.name() != null && !ann.name().isEmpty()) ? ann.name() : ((Enum<?>) c).name();
+                map.put(code, name);
+            }
+            if (!map.isEmpty()) {
+                log.info("[EasyRBAC] 从枚举解析角色数: {} (class={})", map.size(), enumClass);
+            }
+            return map;
+        } catch (ClassNotFoundException e) {
+            log.warn("[EasyRBAC] 未找到 role-enum-class: {}", enumClass, e);
+            return new LinkedHashMap<>();
+        } catch (Exception e) {
+            log.warn("[EasyRBAC] 解析 role-enum-class 失败: {}", enumClass, e);
+            return new LinkedHashMap<>();
         }
     }
 

@@ -41,9 +41,9 @@
 
 ## 1.0.0 功能简介
 
-- **最少必配**：配置数据源（`spring.datasource`）与 `rbac.auto.role-mapping`，即可自动建表并同步角色/接口/角色-接口。
+- **最少必配**：配置数据源（`spring.datasource`）与角色来源二选一：**YAML `rbac.auto.role-mapping`** 或 **枚举 + `rbac.auto.role-enum-class`**，即可自动建表并同步角色/接口/角色-接口。
 - **四张表**：角色表、接口表、角色-接口关联表、用户-角色关联表；支持自定义表名与字段映射（YAML `field-mapping` 或代码 `RbacFieldMappingCustomizer` + `FieldMappingBuilder`）。
-- **启动同步**：从 `role-mapping` 与带 `@RbacController` / `@RbacMethod` 的 Controller 扫描并增量同步，不删用户已有数据；可配置 `sync-role-table` / `sync-api-table` / `sync-role-api-table`、`sync-async`、`scan-packages`。
+- **启动同步**：角色来自 `role-mapping`（YAML）或 `role-enum-class`（枚举）；接口从带 `@RbacController` / `@RbacMethod` 的 Controller 扫描并增量同步，不删用户已有数据；可配置 `sync-role-table` / `sync-api-table` / `sync-role-api-table`、`sync-async`、`scan-packages`。
 - **权限 path 生成**：`api-path-format` 支持 `lowercase_underscore`（默认）、`camelCase`、`path`。
 - **校验方式**：  
   - **internal**：自研 Token（HMAC + 过期），配置 `rbac.check.type: internal`。  
@@ -89,7 +89,9 @@ mvn install:install-file -Dfile=easyrbac-spring-boot-starter-1.0.0.jar -DgroupId
 
 ### 2. 配置数据源与角色列表
 
-本 Starter 使用应用主数据源（`JdbcTemplate`），请在 `application.yml` 中配置 **spring.datasource**，角色列表等 RBAC 配置使用 **rbac** 前缀。示例：
+本 Starter 使用应用主数据源（`JdbcTemplate`），请在 `application.yml` 中配置 **spring.datasource**，角色列表等 RBAC 配置使用 **rbac** 前缀。
+
+**方式一：YAML 配置 role-mapping**
 
 ```yaml
 spring:
@@ -110,7 +112,31 @@ rbac:
     auto-sync-data: true
 ```
 
-启动后框架会自动建表并同步角色与接口（从带 RBAC 注解的 Controller 扫描）。
+**方式二：使用枚举（可不配 role-mapping）**
+
+定义枚举并标注 `@RbacRole(value="角色编码", name="角色名")`，`name` 为空时使用枚举常量名。在 YAML 中只配置 `role-enum-class` 为枚举全限定类名即可，无需再写 `role-mapping`：
+
+```java
+public enum AppRole {
+    @RbacRole(value = "10000", name = "超级管理员")
+    SUPER_ADMIN,
+    @RbacRole(value = "10001", name = "普通用户")
+    NORMAL_USER,
+    @RbacRole(value = "10002", name = "运营人员")
+    OPERATOR
+}
+```
+
+```yaml
+rbac:
+  enabled: true
+  auto:
+    role-enum-class: com.example.yourpackage.AppRole   # 枚举全限定名
+    auto-create-table: true
+    auto-sync-data: true
+```
+
+启动后框架会自动建表并同步角色与接口（从枚举或 role-mapping + 带 RBAC 注解的 Controller 扫描）。
 
 ### 3. Controller 上标注权限
 
@@ -174,7 +200,8 @@ boolean ok = rbacUserRoleService.hasRole("userId", "10000");
 | 配置项 | 说明 | 默认 |
 |--------|------|------|
 | `rbac.enabled` | 总开关 | true |
-| `rbac.auto.role-mapping` | 角色编码 → 角色名称 | 必配 |
+| `rbac.auto.role-mapping` | 角色编码 → 角色名称（YAML） | 与 role-enum-class 二选一 |
+| `rbac.auto.role-enum-class` | 角色枚举全限定名（从枚举同步时可省略 role-mapping） | 可选 |
 | `rbac.auto.auto-create-table` | 是否自动建表 | true |
 | `rbac.auto.auto-sync-data` | 是否启动时同步 | true |
 | `rbac.auto.sync-role-table` / `sync-api-table` / `sync-role-api-table` | 同步哪些表 | true |
