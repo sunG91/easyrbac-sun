@@ -24,6 +24,12 @@
             <groupId>com.sun.easyrbac</groupId>
             <artifactId>easyrbac-core</artifactId>
         </dependency>
+        <!-- Spring Boot 3.4+ 配置绑定依赖 Gson 2.11+ 的 Strictness，显式声明避免用户侧出现 NoClassDefFoundError -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.11.0</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
