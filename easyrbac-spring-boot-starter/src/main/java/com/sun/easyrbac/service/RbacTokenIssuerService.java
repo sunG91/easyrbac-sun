@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.lang.Nullable;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 登录后签发 Token 的封装服务。业务只需在「登录校验通过」后传入 userId，即可拿到与当前校验配置一致的 Token，
@@ -18,7 +19,8 @@ import java.time.Duration;
  * - type=jwt：本框架不实现 JWT 签发，{@link #issueToken(Object)} 返回 null，业务需用自有 JWT 库签发。
  *
  * 若项目启用了 Redis（存在 StringRedisTemplate），可通过 {@link #issueTokenAndCache(Object)} 在签发 Token 的同时
- * 将登录态写入 Redis（key 由 rbac.check.redis.key-prefix 与 key-by 决定，value 默认为 userId）。
+ * 将登录态写入 Redis（key 由 rbac.check.redis.key-prefix 与 key-by 决定，value 为包含 userId 与 roles 的 JSON），
+ * 并通过 {@link RbacUserRoleService#getRoles(String)} 预热该用户的角色缓存。
  *
  * @author SUNRUI
  */
@@ -30,17 +32,27 @@ public class RbacTokenIssuerService {
     private final RbacProperties properties;
     @Nullable
     private final StringRedisTemplate redisTemplate;
+    @Nullable
+    private final RbacUserRoleService userRoleService;
 
     public RbacTokenIssuerService(RbacTokenValidator tokenValidator, RbacProperties properties) {
-        this(tokenValidator, properties, null);
+        this(tokenValidator, properties, null, null);
     }
 
     public RbacTokenIssuerService(RbacTokenValidator tokenValidator,
                                   RbacProperties properties,
                                   @Nullable StringRedisTemplate redisTemplate) {
+        this(tokenValidator, properties, redisTemplate, null);
+    }
+
+    public RbacTokenIssuerService(RbacTokenValidator tokenValidator,
+                                  RbacProperties properties,
+                                  @Nullable StringRedisTemplate redisTemplate,
+                                  @Nullable RbacUserRoleService userRoleService) {
         this.tokenValidator = tokenValidator;
         this.properties = properties;
         this.redisTemplate = redisTemplate;
+        this.userRoleService = userRoleService;
     }
 
     /**
@@ -97,9 +109,11 @@ public class RbacTokenIssuerService {
     /**
      * 为指定用户签发 Token，并在启用 Redis 时自动将登录态写入 Redis，允许追加自定义扩展对象。
      * <p>
-     * - 当 extra 为 null 时，value 为 userId（与 {@link #issueTokenAndCache(Object)} 一致）
-     * - 当 extra 不为 null 时，value 为一个简单的 JSON 字符串：
-     *   {"userId":"...","extra":"extra.toString() 的结果"}
+     * value 为 JSON 字符串：
+     * <pre>
+     * {"userId":"...","roles":[...]}                     // extra 为 null 时
+     * {"userId":"...","roles":[...],"extra":"..."}       // extra 不为 null 时
+     * </pre>
      *
      * @param userId 用户唯一标识
      * @param extra  需要一并缓存的扩展对象（可选，会使用其 toString() 结果）
@@ -135,19 +149,45 @@ public class RbacTokenIssuerService {
                 key = prefix + userId;
             }
             long expireSeconds = redis.getExpireTime() > 0 ? redis.getExpireTime() : 7200;
-            String value = buildValue(userId, extra);
+            List<String> roles = null;
+            if (userRoleService != null) {
+                try {
+                    roles = userRoleService.getRoles(userId);
+                } catch (Exception e) {
+                    log.warn("[EasyRBAC] Load user roles for login cache error: {}", e.getMessage());
+                }
+            }
+            String value = buildValue(userId, roles, extra);
             redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(expireSeconds));
         } catch (Exception e) {
             log.warn("[EasyRBAC] Redis cache login state error: {}", e.getMessage());
         }
     }
 
-    private String buildValue(String userId, @Nullable Object extra) {
-        if (extra == null) {
-            return userId;
+    private String buildValue(String userId, @Nullable List<String> roles, @Nullable Object extra) {
+        StringBuilder sb = new StringBuilder(64);
+        sb.append("{\"userId\":\"").append(escapeJson(userId)).append("\"");
+        if (roles != null) {
+            sb.append(",\"roles\":[");
+            for (int i = 0; i < roles.size(); i++) {
+                if (i > 0) {
+                    sb.append(',');
+                }
+                String role = roles.get(i);
+                if (role == null) {
+                    sb.append("\"\"");
+                } else {
+                    sb.append("\"").append(escapeJson(role)).append("\"");
+                }
+            }
+            sb.append(']');
         }
-        String extraStr = String.valueOf(extra);
-        return "{\"userId\":\"" + escapeJson(userId) + "\",\"extra\":\"" + escapeJson(extraStr) + "\"}";
+        if (extra != null) {
+            String extraStr = String.valueOf(extra);
+            sb.append(",\"extra\":\"").append(escapeJson(extraStr)).append("\"");
+        }
+        sb.append('}');
+        return sb.toString();
     }
 
     private static String escapeJson(String s) {

@@ -10,7 +10,7 @@ import com.sun.easyrbac.core.token.RbacTokenValidator;
 import com.sun.easyrbac.ext.RbacExcludePathCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.util.UrlPathHelper;
 
@@ -42,6 +42,7 @@ public class RbacCheckFilter extends HttpFilter {
     private final RbacApiRepository apiRepository;
     private final List<RbacExcludePathCustomizer> excludePathCustomizers;
     private final UrlPathHelper pathHelper = new UrlPathHelper();
+    private final StringRedisTemplate redisTemplate;
 
     public RbacCheckFilter(RbacProperties properties,
                            RbacTokenValidator tokenValidator,
@@ -49,7 +50,8 @@ public class RbacCheckFilter extends HttpFilter {
                            RbacUserRoleRepository userRoleRepository,
                            RbacRoleApiRepository roleApiRepository,
                            RbacApiRepository apiRepository,
-                           List<RbacExcludePathCustomizer> excludePathCustomizers) {
+                           List<RbacExcludePathCustomizer> excludePathCustomizers,
+                           StringRedisTemplate redisTemplate) {
         this.properties = properties;
         this.tokenValidator = tokenValidator;
         this.roleRepository = roleRepository;
@@ -57,6 +59,7 @@ public class RbacCheckFilter extends HttpFilter {
         this.roleApiRepository = roleApiRepository;
         this.apiRepository = apiRepository;
         this.excludePathCustomizers = excludePathCustomizers != null ? excludePathCustomizers : new ArrayList<>();
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -90,6 +93,12 @@ public class RbacCheckFilter extends HttpFilter {
             response.getWriter().write("{\"code\":\"RBAC_3002\",\"message\":\"Token invalid or expired\"}");
             return;
         }
+        if (!checkLoginStateInRedis(token, userId)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":\"" + RbacConstants.ERR_TOKEN_INVALID + "\",\"message\":\"Login state not found in Redis\"}");
+            return;
+        }
         request.setAttribute("rbac.userId", userId);
         chain.doFilter(request, response);
     }
@@ -109,6 +118,29 @@ public class RbacCheckFilter extends HttpFilter {
             }
         }
         return false;
+    }
+
+    private boolean checkLoginStateInRedis(String token, String userId) {
+        if (redisTemplate == null) {
+            // 未启用 Redis，则不做登录态强校验
+            return true;
+        }
+        try {
+            RbacProperties.Redis redis = properties.getCheck().getRedis();
+            String prefix = redis.getKeyPrefix() != null ? redis.getKeyPrefix() : "rbac:login:";
+            String keyBy = redis.getKeyBy() != null ? redis.getKeyBy() : "user_id";
+            String key;
+            if ("token".equalsIgnoreCase(keyBy)) {
+                key = prefix + token;
+            } else {
+                key = prefix + userId;
+            }
+            String value = redisTemplate.opsForValue().get(key);
+            return value != null && !value.isEmpty();
+        } catch (Exception e) {
+            log.warn("[EasyRBAC] Check login state in Redis error: {}", e.getMessage());
+            return false;
+        }
     }
 
     private static String escapeJson(String s) {

@@ -213,8 +213,8 @@ rbac:
 
 **登录后签发 Token（推荐）**  
 业务只需在「登录校验通过」后传入 userId，由框架生成与当前配置一致的 Token，无需自实现 HMAC 或关心过期时间、请求头前缀。  
-当启用了 Redis（`rbac.check.redis.*`）时，可使用 `issueTokenAndCache(userId)` 在签发 Token 的同时，将登录态写入 Redis（key 形如 `rbac:login:userId`，可通过 `key-by` / `key-prefix` 自定义），方便后续统一管理登录状态。  
-若还希望在 Redis 中记录额外信息（如登录设备、IP 等），可使用重载方法 `issueTokenAndCache(userId, extra)`，extra 会以简单 JSON 的形式和 userId 一起写入 value。
+当启用了 Redis（`rbac.check.redis.*`）时，可使用 `issueTokenAndCache(userId)` 在签发 Token 的同时，将登录态写入 Redis（key 形如 `rbac:login:userId`，可通过 `key-by` / `key-prefix` 自定义），同时会加载该用户当前角色列表并写入 Redis 角色缓存，方便后续统一管理登录状态与权限。  
+Redis 登录态的 value 为 JSON，至少包含 `userId` 与 `roles` 字段，例如：`{"userId":"10001","roles":["10000","10001"]}`；若还希望在 Redis 中记录额外信息（如登录设备、IP 等），可使用重载方法 `issueTokenAndCache(userId, extra)`，此时 JSON 中还会追加 `extra` 字段（`{"userId":"...","roles":[...],"extra":"extra.toString() 的结果"}`）。
 
 ```java
 @RestController

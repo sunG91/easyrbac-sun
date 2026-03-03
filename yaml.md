@@ -316,7 +316,7 @@ rbac:
 - `rbac.check.redis.password`（String，默认空）
 - `rbac.check.redis.database`（int，默认 `0`）
 - `rbac.check.redis.expire-time`（long，默认 `7200`）  
-  登录态等在 Redis 中的过期时间（秒）。当使用 `RbacTokenIssuerService.issueTokenAndCache` 时，会以此为 TTL 写入登录态。
+  登录态等在 Redis 中的过期时间（秒）。当使用 `RbacTokenIssuerService.issueTokenAndCache` 时，会以此为 TTL 写入登录态；同时会加载用户当前角色列表并写入角色缓存，后续权限校验优先走 Redis。
 - `rbac.check.redis.key-by`（String，默认 `"user_id"`）  
   key 构成方式，可按业务含义自定义：  
   - `"user_id"`：登录态 key 形如 `key-prefix + userId`（默认推荐）  
@@ -339,6 +339,7 @@ rbac:
 ```
 
 > **可重写点**：当应用中**没有**自定义的 `StringRedisTemplate` 时，配置了 `rbac.check.redis` 后，框架会通过 `RbacRedisConnectionConfiguration` 使用这些参数创建一套独立的 Redis 连接，不会影响你原有的 Redis 使用。
+> 当 `rbac.check.enabled=true` 且启用了 Redis 时，请求侧 Token 虽然通过签名/过期校验，但若 Redis 中不存在对应登录态 key（根据 `key-by` 决定是按 userId 还是 token 查），框架会直接返回「未登录」（HTTP 401，错误码 `RBAC_3002`），即视为登录态已失效。
 
 ---
 

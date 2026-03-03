@@ -25,8 +25,11 @@ private RbacTokenIssuerService rbacTokenIssuerService;
 | 方法 | 返回值 | 参数 | 说明 |
 |------|--------|------|------|
 | `issueToken(Object userId)` | `RbacTokenResult` 或 `null` | `userId`：用户唯一标识，可为 String、Long、Integer 等 | 为指定用户签发 Token。`type=internal` 时返回完整结果（内部统一转为字符串存储）；`type=jwt` 时返回 `null`，需业务用自有 JWT 库签发。 |
+| `issueTokenAndCache(Object userId)` | `RbacTokenResult` 或 `null` | `userId`：用户唯一标识 | 为指定用户签发 Token，并在启用 Redis 时将登录态与当前角色列表写入 Redis。登录态 key 由 `rbac.check.redis.key-prefix` 与 `key-by` 决定（默认 `rbac:login:userId`），value 为包含 `userId` 与 `roles` 的 JSON。 |
+| `issueTokenAndCache(Object userId, Object extra)` | `RbacTokenResult` 或 `null` | `userId`：用户唯一标识；`extra`：扩展对象 | 同上，同时将 `extra.toString()` 写入 JSON 的 `extra` 字段，便于记录设备、IP 等额外信息。 |
 
-**逻辑简述**：根据 `rbac.check.type` 决定是否由框架生成 Token；internal 时调用内部 `RbacTokenValidator.generate(userId)`（内部用 `String.valueOf(userId)` 写入），并封装为 `RbacTokenResult`（含 token、type、expireSeconds、userId 字符串）。
+**逻辑简述**：根据 `rbac.check.type` 决定是否由框架生成 Token；internal 时调用内部 `RbacTokenValidator.generate(userId)`（内部用 `String.valueOf(userId)` 写入），并封装为 `RbacTokenResult`（含 token、type、expireSeconds、userId 字符串）。  
+启用 Redis 且通过 `issueTokenAndCache` 调用时，框架会按配置写入登录态（key-by=userId 或 token），value 为 `{"userId":"...","roles":[...],"extra":"..."}` 形式的 JSON，并通过 `RbacUserRoleService.getRoles` 预热用户角色缓存；后续请求若 Token 校验通过但 Redis 中不存在对应登录态，则直接视为未登录。
 
 ---
 

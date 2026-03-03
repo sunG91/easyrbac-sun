@@ -33,6 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -186,8 +187,12 @@ public class EasyRbacAutoConfiguration {
     @ConditionalOnBean(RbacTokenValidator.class)
     public RbacTokenIssuerService rbacTokenIssuerService(RbacTokenValidator tokenValidator,
                                                          RbacProperties properties,
-                                                         ObjectProvider<org.springframework.data.redis.core.StringRedisTemplate> redisTemplate) {
-        return new RbacTokenIssuerService(tokenValidator, properties, redisTemplate.getIfAvailable());
+                                                         ObjectProvider<StringRedisTemplate> redisTemplate,
+                                                         ObjectProvider<RbacUserRoleService> userRoleService) {
+        return new RbacTokenIssuerService(tokenValidator,
+                properties,
+                redisTemplate.getIfAvailable(),
+                userRoleService.getIfAvailable());
     }
 
     @Bean
@@ -199,9 +204,17 @@ public class EasyRbacAutoConfiguration {
                                                                                 RbacUserRoleRepository userRoleRepository,
                                                                                 RbacRoleApiRepository roleApiRepository,
                                                                                 RbacApiRepository apiRepository,
-                                                                                List<RbacExcludePathCustomizer> excludePathCustomizers) {
+                                                                                List<RbacExcludePathCustomizer> excludePathCustomizers,
+                                                                                ObjectProvider<StringRedisTemplate> redisTemplate) {
         FilterRegistrationBean<RbacCheckFilter> reg = new FilterRegistrationBean<>();
-        reg.setFilter(new RbacCheckFilter(properties, tokenValidator, roleRepository, userRoleRepository, roleApiRepository, apiRepository, excludePathCustomizers));
+        reg.setFilter(new RbacCheckFilter(properties,
+                tokenValidator,
+                roleRepository,
+                userRoleRepository,
+                roleApiRepository,
+                apiRepository,
+                excludePathCustomizers,
+                redisTemplate.getIfAvailable()));
         reg.addUrlPatterns("/*");
         reg.setOrder(100);
         return reg;
