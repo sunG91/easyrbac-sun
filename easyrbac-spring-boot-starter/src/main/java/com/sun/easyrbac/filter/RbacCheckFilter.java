@@ -71,7 +71,19 @@ public class RbacCheckFilter extends HttpFilter {
             return;
         }
         String token = resolveToken(request);
-        String userId = token != null ? tokenValidator.validate(token) : null;
+        if (token == null || token.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            String msg = "Missing token: set header " + (properties.getCheck().getType().equalsIgnoreCase("internal")
+                    ? properties.getCheck().getInternal().getHeader()
+                    : properties.getCheck().getJwt().getHeader())
+                    + " with prefix \"" + (properties.getCheck().getType().equalsIgnoreCase("internal")
+                    ? properties.getCheck().getInternal().getPrefix()
+                    : properties.getCheck().getJwt().getPrefix()) + " <token>\"";
+            response.getWriter().write("{\"code\":\"RBAC_3002\",\"message\":\"" + escapeJson(msg) + "\"}");
+            return;
+        }
+        String userId = tokenValidator.validate(token);
         if (userId == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
@@ -97,6 +109,11 @@ public class RbacCheckFilter extends HttpFilter {
             }
         }
         return false;
+    }
+
+    private static String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private String resolveToken(HttpServletRequest request) {

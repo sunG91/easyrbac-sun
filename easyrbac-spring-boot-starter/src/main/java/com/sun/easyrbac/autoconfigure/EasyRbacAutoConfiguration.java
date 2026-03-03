@@ -13,6 +13,7 @@ import com.sun.easyrbac.filter.RbacCheckFilter;
 import com.sun.easyrbac.service.RbacSyncService;
 import com.sun.easyrbac.service.RbacUserRoleService;
 import com.sun.easyrbac.service.RbacConfigAdminService;
+import com.sun.easyrbac.service.RbacTokenIssuerService;
 import com.sun.easyrbac.support.*;
 import com.sun.easyrbac.interceptor.RbacCheckInterceptor;
 import com.sun.easyrbac.token.InternalTokenValidator;
@@ -159,6 +160,14 @@ public class EasyRbacAutoConfiguration {
     @ConditionalOnProperty(prefix = "rbac.check", name = "type", havingValue = "jwt")
     public RbacTokenValidator jwtRbacTokenValidator(RbacProperties properties) {
         return new JwtTokenValidator(properties);
+    }
+
+    /** 登录后签发 Token：业务校验通过后调用 issueToken(userId) 即可，无需自实现 HMAC/JWT（internal 类型）。 */
+    @Bean
+    @ConditionalOnProperty(prefix = "rbac", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnBean(RbacTokenValidator.class)
+    public RbacTokenIssuerService rbacTokenIssuerService(RbacTokenValidator tokenValidator, RbacProperties properties) {
+        return new RbacTokenIssuerService(tokenValidator, properties);
     }
 
     @Bean

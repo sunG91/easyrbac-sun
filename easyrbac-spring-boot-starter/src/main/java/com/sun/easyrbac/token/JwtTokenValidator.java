@@ -39,7 +39,7 @@ public class JwtTokenValidator implements RbacTokenValidator {
     }
 
     @Override
-    public String generate(String userId) {
+    public String generate(Object userId) {
         return null;
     }
 

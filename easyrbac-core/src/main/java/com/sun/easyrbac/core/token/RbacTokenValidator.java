@@ -15,6 +15,9 @@ public interface RbacTokenValidator {
 
     /**
      * 签发 token，将用户标识写入，返回 token 字符串。
+     * 用户标识类型由业务决定（String/Long/Integer 等），传入任意类型即可，内部会转为字符串存储。
+     *
+     * @param userId 用户唯一标识，可为 String、Long、Integer 等，null 则返回 null
      */
-    String generate(String userId);
+    String generate(Object userId);
 }

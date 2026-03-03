@@ -371,6 +371,8 @@ public class RbacProperties {
         private long expireSeconds = 7200;
         /** 密钥（至少 32 字符），不配则启动时生成随机密钥（仅开发用） */
         private String secret = "";
+        /** 用户标识类型：string / long / integer，仅文档与序列化约定，签发时传入任意类型均会转为字符串 */
+        private String userIdentifierType = "string";
 
         public String getHeader() {
             return header;
@@ -402,6 +404,14 @@ public class RbacProperties {
 
         public void setSecret(String secret) {
             this.secret = secret != null ? secret : "";
+        }
+
+        public String getUserIdentifierType() {
+            return userIdentifierType;
+        }
+
+        public void setUserIdentifierType(String userIdentifierType) {
+            this.userIdentifierType = userIdentifierType != null ? userIdentifierType : "string";
         }
     }
 

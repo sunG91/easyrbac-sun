@@ -35,10 +35,11 @@ public class InternalTokenValidator implements RbacTokenValidator {
     }
 
     @Override
-    public String generate(String userId) {
+    public String generate(Object userId) {
         if (userId == null) return null;
+        String idStr = String.valueOf(userId);
         long expireAt = System.currentTimeMillis() + expireSeconds * 1000L;
-        String payload = userId + ":" + expireAt;
+        String payload = idStr + ":" + expireAt;
         String sign = hmac(payload);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(payload.getBytes(StandardCharsets.UTF_8))
                 + "." + Base64.getUrlEncoder().withoutPadding().encodeToString(sign.getBytes(StandardCharsets.UTF_8));

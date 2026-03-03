@@ -2,6 +2,8 @@
 
 基于 **Spring Boot 3.5+** 的 RBAC 权限框架，1.0.0 单体应用实现。引入 Starter 后配置数据库与角色列表即可使用，支持自研 Token / JWT、无 Redis 或有 Redis 缓存策略、YAML 导入导出与运行时角色/接口管理。
 
+- **API 文档**：[API.md](API.md) — 所有对外方法、扩展点、注解、模型与常量的调用方式、逻辑、参数与注释。
+
 ---
 
 ## 作者与仓库
@@ -178,9 +180,70 @@ rbac:
       - /public/**
 ```
 
+**登录后签发 Token（推荐）**  
+业务只需在「登录校验通过」后传入 userId，由框架生成与当前配置一致的 Token，无需自实现 HMAC 或关心过期时间、请求头前缀。`type=internal` 时注入 `RbacTokenIssuerService`，调用 `issueToken(userId)` 即可：
+
+```java
+@RestController
+@RequestMapping("/api")
+public class LoginController {
+
+    @Autowired
+    private RbacTokenIssuerService rbacTokenIssuerService;
+
+    @PostMapping("/login")
+    public Result<LoginVO> login(@RequestBody LoginDTO dto) {
+        // 1. 校验用户名密码（查库、BCrypt 等）
+        User user = authService.authenticate(dto.getUsername(), dto.getPassword());
+        if (user == null) return Result.fail(401, "用户名或密码错误");
+        // 2. 由框架签发 Token（与 rbac.check 配置一致，internal 时直接可用）
+        RbacTokenResult tokenResult = rbacTokenIssuerService.issueToken(user.getId());
+        if (tokenResult == null) return Result.fail(500, "Token 签发失败"); // type=jwt 时需业务用 JWT 库自行签发
+        // 3. 返回给前端，前端请求时带 Header: Authorization: Bearer <tokenResult.getToken()>
+        return Result.success(LoginVO.builder()
+                .token(tokenResult.getToken())
+                .type(tokenResult.getType())
+                .expireSeconds(tokenResult.getExpireSeconds())
+                .userId(tokenResult.getUserId())
+                .build());
+    }
+}
+```
+
 请求头携带 `Authorization: Bearer <token>`，Token 合法且用户具备接口所需角色之一即可通过。
 
-### 5. 业务层操作用户与角色
+### 5. Redis 角色缓存（可选）
+
+启用后，权限校验会优先从 Redis 读用户角色，未命中再查库并回写缓存；`addRole`/`removeRole` 后会自动失效对应用户缓存。
+
+**方式一：仅配置 rbac.check.redis（RBAC 独立连 Redis）**
+
+1. 在项目中引入 Redis 依赖（若未引入）：
+   ```xml
+   <dependency>
+       <groupId>org.springframework.boot</groupId>
+       <artifactId>spring-boot-starter-data-redis</artifactId>
+   </dependency>
+   ```
+2. 只配置 `rbac.check.redis`，**不要**配置 `spring.data.redis`，框架会用 `rbac.check.redis` 自动创建连接：
+   ```yaml
+   rbac:
+     check:
+       redis:
+         host: localhost
+         port: 6379
+         database: 0
+         password:          # 无密码留空
+         expire-time: 7200  # 可选，缓存过期秒数
+     cache:
+       ttl: 300   # 角色缓存 TTL（秒），可选
+   ```
+
+**方式二：使用应用已有 Redis（spring.data.redis）**
+
+若项目已配置 `spring.data.redis`，框架会直接使用应用已有的 Redis 连接，无需再配 `rbac.check.redis` 的 host/port；只需用 `rbac.check.redis.expire-time` 或 `rbac.cache.ttl` 调节角色缓存 TTL 即可。
+
+### 6. 业务层操作用户与角色
 
 ```java
 @Autowired
@@ -214,7 +277,8 @@ boolean ok = rbacUserRoleService.hasRole("userId", "10000");
 | `rbac.check.type` | internal / jwt | internal |
 | `rbac.check.exclude-paths` | 白名单路径（Ant 风格） | 空 |
 | `rbac.check.intercept-mode` | all / annotated | all |
-| `rbac.check.redis.*` | Redis 连接与 TTL（可选，用于角色缓存） | 可选 |
+| `rbac.check.redis.host` / `port` / `database` / `password` | 角色缓存 Redis 连接（未配 spring.data.redis 时由框架用此建连） | host=localhost, port=6379 |
+| `rbac.check.redis.expire-time` | 角色缓存过期秒数 | 7200 |
 | `rbac.cache.ttl` | 缓存 TTL（秒） | 300 |
 
 ---
