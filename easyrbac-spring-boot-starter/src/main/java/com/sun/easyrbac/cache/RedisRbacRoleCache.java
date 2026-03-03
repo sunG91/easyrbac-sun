@@ -35,6 +35,7 @@ public class RedisRbacRoleCache implements RbacRoleCache {
         RbacProperties.Redis redis = properties.getCheck().getRedis();
         long ttl = properties.getCache() != null ? properties.getCache().getTtl() : 300;
         this.expireSeconds = redis.getExpireTime() > 0 ? redis.getExpireTime() : ttl;
+        log.info("[EasyRBAC] Redis 角色缓存已启用，key 前缀={}, TTL={}s", this.keyPrefix, this.expireSeconds);
     }
 
     @Override
