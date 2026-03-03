@@ -212,7 +212,8 @@ rbac:
 ```
 
 **登录后签发 Token（推荐）**  
-业务只需在「登录校验通过」后传入 userId，由框架生成与当前配置一致的 Token，无需自实现 HMAC 或关心过期时间、请求头前缀。`type=internal` 时注入 `RbacTokenIssuerService`，调用 `issueToken(userId)` 即可：
+业务只需在「登录校验通过」后传入 userId，由框架生成与当前配置一致的 Token，无需自实现 HMAC 或关心过期时间、请求头前缀。  
+当启用了 Redis（`rbac.check.redis.*`）时，可使用 `issueTokenAndCache(userId)` 在签发 Token 的同时，将登录态写入 Redis（key 形如 `rbac:login:userId`，可通过 `key-by` / `key-prefix` 自定义），方便后续统一管理登录状态。
 
 ```java
 @RestController
@@ -227,8 +228,8 @@ public class LoginController {
         // 1. 校验用户名密码（查库、BCrypt 等）
         User user = authService.authenticate(dto.getUsername(), dto.getPassword());
         if (user == null) return Result.fail(401, "用户名或密码错误");
-        // 2. 由框架签发 Token（与 rbac.check 配置一致，internal 时直接可用）
-        RbacTokenResult tokenResult = rbacTokenIssuerService.issueToken(user.getId());
+        // 2. 由框架签发 Token（与 rbac.check 配置一致，internal 时直接可用），并在启用 Redis 时写入登录态
+        RbacTokenResult tokenResult = rbacTokenIssuerService.issueTokenAndCache(user.getId());
         if (tokenResult == null) return Result.fail(500, "Token 签发失败"); // type=jwt 时需业务用 JWT 库自行签发
         // 3. 返回给前端，前端请求时带 Header: Authorization: Bearer <tokenResult.getToken()>
         return Result.success(LoginVO.builder()

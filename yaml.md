@@ -302,11 +302,12 @@ rbac:
       secret: your-jwt-secret-or-public-key
 ```
 
-> **可重写点**：JWT 的具体载荷（sub、roles 等）由业务侧自行定义；框架只负责从 JWT 中解析出用户标识并做角色/权限判断。
+> **可重写点**：JWT 的具体载荷（sub、roles 等）由业务侧自行定义；框架只负责从 JWT 中解析出用户标识并做角色/权限判断。  
+> 此外，无论 internal 还是 jwt 模式，`RbacTokenValidator.validate` 都支持直接传入带前缀的字符串（如 `"Bearer xxx"`），框架会自动剥离前缀，业务无需手动处理。
 
 #### 4.4 Redis 配置：`rbac.check.redis.*`
 
-对应 `RbacProperties.Redis`。用于 RBAC 内部与登录态等使用的 Redis 连接。
+对应 `RbacProperties.Redis`。用于 RBAC 内部的**登录态**与**角色缓存**等使用的 Redis 连接。
 
 字段：
 
@@ -315,12 +316,14 @@ rbac:
 - `rbac.check.redis.password`（String，默认空）
 - `rbac.check.redis.database`（int，默认 `0`）
 - `rbac.check.redis.expire-time`（long，默认 `7200`）  
-  登录态等在 Redis 中的过期时间（秒）。
+  登录态等在 Redis 中的过期时间（秒）。当使用 `RbacTokenIssuerService.issueTokenAndCache` 时，会以此为 TTL 写入登录态。
 - `rbac.check.redis.key-by`（String，默认 `"user_id"`）  
-  key 构成方式，可按业务含义自定义。
+  key 构成方式，可按业务含义自定义：  
+  - `"user_id"`：登录态 key 形如 `key-prefix + userId`（默认推荐）  
+  - `"token"`：登录态 key 形如 `key-prefix + token`
 - `rbac.check.redis.key-prefix`（String，默认 `"rbac:login:"`）
 
-**重写示例：RBAC 使用独立 Redis 实例**
+**重写示例：RBAC 使用独立 Redis 实例（默认 db=0，可按需自定义）**
 
 ```yaml
 rbac:

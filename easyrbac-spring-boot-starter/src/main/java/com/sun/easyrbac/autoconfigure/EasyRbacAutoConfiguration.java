@@ -162,12 +162,14 @@ public class EasyRbacAutoConfiguration {
         return new JwtTokenValidator(properties);
     }
 
-    /** 登录后签发 Token：业务校验通过后调用 issueToken(userId) 即可，无需自实现 HMAC/JWT（internal 类型）。 */
+    /** 登录后签发 Token：业务校验通过后调用 issueToken(userId) 或 issueTokenAndCache(userId) 即可，无需自实现 HMAC/JWT（internal 类型）。 */
     @Bean
     @ConditionalOnProperty(prefix = "rbac", name = "enabled", havingValue = "true", matchIfMissing = true)
     @ConditionalOnBean(RbacTokenValidator.class)
-    public RbacTokenIssuerService rbacTokenIssuerService(RbacTokenValidator tokenValidator, RbacProperties properties) {
-        return new RbacTokenIssuerService(tokenValidator, properties);
+    public RbacTokenIssuerService rbacTokenIssuerService(RbacTokenValidator tokenValidator,
+                                                         RbacProperties properties,
+                                                         ObjectProvider<org.springframework.data.redis.core.StringRedisTemplate> redisTemplate) {
+        return new RbacTokenIssuerService(tokenValidator, properties, redisTemplate.getIfAvailable());
     }
 
     @Bean

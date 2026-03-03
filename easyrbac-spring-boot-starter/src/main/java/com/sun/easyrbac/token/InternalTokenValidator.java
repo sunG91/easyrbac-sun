@@ -23,6 +23,7 @@ public class InternalTokenValidator implements RbacTokenValidator {
     private static final String HMAC_SHA256 = "HmacSHA256";
     private final String secret;
     private final long expireSeconds;
+    private final String prefix;
 
     public InternalTokenValidator(RbacProperties properties) {
         RbacProperties.Internal internal = properties.getCheck().getInternal();
@@ -32,6 +33,7 @@ public class InternalTokenValidator implements RbacTokenValidator {
         }
         this.secret = s;
         this.expireSeconds = internal.getExpireSeconds() > 0 ? internal.getExpireSeconds() : 7200;
+        this.prefix = internal.getPrefix() != null ? internal.getPrefix() : "Bearer";
     }
 
     @Override
@@ -48,6 +50,10 @@ public class InternalTokenValidator implements RbacTokenValidator {
     @Override
     public String validate(String token) {
         if (token == null || token.isEmpty()) return null;
+        // 兼容传入带前缀的值，如 "Bearer xxx"：自动剥离前缀，避免调用方做多余处理
+        if (prefix != null && !prefix.isEmpty() && token.startsWith(prefix + " ")) {
+            token = token.substring(prefix.length()).trim();
+        }
         int dot = token.indexOf('.');
         if (dot <= 0) return null;
         try {

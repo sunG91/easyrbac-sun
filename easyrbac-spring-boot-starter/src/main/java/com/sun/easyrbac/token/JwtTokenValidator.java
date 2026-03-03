@@ -23,6 +23,11 @@ public class JwtTokenValidator implements RbacTokenValidator {
     @Override
     public String validate(String token) {
         if (token == null || token.isEmpty()) return null;
+        // 兼容传入带前缀的值，如 "Bearer xxx"：自动剥离前缀
+        String prefix = jwtConfig.getPrefix();
+        if (prefix != null && !prefix.isEmpty() && token.startsWith(prefix + " ")) {
+            token = token.substring(prefix.length()).trim();
+        }
         int dot1 = token.indexOf('.');
         int dot2 = token.indexOf('.', dot1 + 1);
         if (dot1 <= 0 || dot2 <= dot1) return null;
