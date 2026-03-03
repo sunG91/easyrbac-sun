@@ -63,12 +63,34 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <!-- 只把本项目的 common、core 打进 JAR，排除 Spring 等第三方 -->
                             <artifactSet>
-                                <includes>
-                                    <include>com.sun.easyrbac:easyrbac-common</include>
-                                    <include>com.sun.easyrbac:easyrbac-core</include>
-                                    <include>com.sun.easyrbac:easyrbac-spring-boot-starter</include>
-                                </includes>
+                                <excludes>
+                                    <exclude>org.springframework:*</exclude>
+                                    <exclude>org.springframework.boot:*</exclude>
+                                    <exclude>org.springframework.data:*</exclude>
+                                    <exclude>org.apache.*:*</exclude>
+                                    <exclude>jakarta.*:*</exclude>
+                                    <exclude>javax.*:*</exclude>
+                                    <exclude>org.yaml:*</exclude>
+                                    <exclude>ch.qos.logback:*</exclude>
+                                    <exclude>org.slf4j:*</exclude>
+                                    <exclude>org.jboss:*</exclude>
+                                    <exclude>com.fasterxml.*:*</exclude>
+                                    <exclude>net.bytebuddy:*</exclude>
+                                    <exclude>org.ow2.asm:*</exclude>
+                                    <exclude>org.hibernate.validator:*</exclude>
+                                    <exclude>org.aopalliance:*</exclude>
+                                    <exclude>io.micrometer:*</exclude>
+                                    <exclude>io.netty:*</exclude>
+                                    <exclude>io.lettuce:*</exclude>
+                                    <exclude>io.projectreactor:*</exclude>
+                                    <exclude>org.reactivestreams:*</exclude>
+                                    <exclude>org.glassfish:*</exclude>
+                                    <exclude>com.google.*:*</exclude>
+                                    <exclude>com.zaxxer:*</exclude>
+                                    <exclude>org.junit.*:*</exclude>
+                                </excludes>
                             </artifactSet>
                             <filters>
                                 <filter>
