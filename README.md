@@ -145,17 +145,48 @@ rbac:
 ```java
 @RestController
 @RequestMapping("/user")
-@RbacController("10001")
+@RbacController("10001")              // 单个角色（类级默认角色）
 public class UserController {
 
     @GetMapping("/list")
-    @RbacMethod("10000")
+    @RbacMethod("10000")              // 单个角色（直接写角色编码）
     public Result list() {
         return Result.success();
     }
 
-    @PostMapping("/add")
-    public Result add(User user) {
+    // 一个接口允许多个角色访问（拥有任一即可）
+    @PostMapping("/export")
+    @RbacMethod({"10000","10002"})    // 管理员或运营都能访问
+    public Result export() {
+        return Result.success();
+    }
+}
+```
+
+#### 3.1 使用枚举声明角色并在注解中引用（推荐）
+
+如果你已经通过 `@RbacRole` 在枚举中声明了角色编码，可以在 `@RbacMethod` / `@RbacController` 中使用 `roleEnums` 将这些枚举类一起参与权限判断，无需在注解里再次硬编码字符串：
+
+```java
+import com.sun.easyrbac.annotation.RbacRole;
+import com.sun.easyrbac.annotation.RbacMethod;
+import com.sun.easyrbac.annotation.RbacController;
+
+public enum AppRole {
+    @RbacRole(value = "10000", name = "管理员")
+    OPS,
+    @RbacRole(value = "10001", name = "运营")
+    OPS2
+}
+
+@RestController
+@RequestMapping("/order")
+@RbacController(roleEnums = {AppRole.class})   // 类级默认角色枚举
+public class OrderController {
+
+    @GetMapping("/list")
+    @RbacMethod(roleEnums = {AppRole.class})   // 方法级角色来自 AppRole 中带 @RbacRole 的常量
+    public Result list() {
         return Result.success();
     }
 }

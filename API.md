@@ -241,15 +241,24 @@ public class OrderStatePolicy implements RbacStateTransitionPolicy {
 ```java
 @RestController
 @RequestMapping("/user")
-@RbacController("10001")  // 默认需要角色 10001
+@RbacController("10001")                 // 单个角色
+public class UserController { ... }
+```
+
+支持多个角色/权限 ID，语义为「拥有任一即可访问」：
+
+```java
+@RestController
+@RequestMapping("/user")
+@RbacController({"10001","10002"})      // 拥有 10001 或 10002 之一即可访问
 public class UserController { ... }
 ```
 
 | 属性 | 类型 | 说明 |
 |------|------|------|
-| `value` | String | 默认需要的角色编码/权限 ID（与 id 等价）。 |
-| `id` | String | 显式指定权限 ID。 |
-| `path` | String | 权限地址，仅 annotation-mode=path 时生效，须显式指定。 |
+| `value` | String 或 String[] | 默认需要的角色编码/权限 ID（与 id 等价），可为单个或多个。 |
+| `id` | String 或 String[] | 显式指定权限 ID，可为单个或多个。 |
+| `path` | String 或 String[] | 权限地址，仅 annotation-mode=path 时生效，可为单个或多个，须显式指定。 |
 
 ---
 
@@ -266,11 +275,19 @@ public class UserController { ... }
 public Result list() { ... }
 ```
 
+也支持多个角色/权限 ID，语义同样是「拥有任一即可访问」：
+
+```java
+@GetMapping("/list")
+@RbacMethod({"10000","10001"})          // 拥有 10000 或 10001 之一即可访问
+public Result list() { ... }
+```
+
 | 属性 | 类型 | 说明 |
 |------|------|------|
-| `value` | String | 需要的角色编码/权限 ID（与 id 等价）。 |
-| `id` | String | 显式指定权限 ID。 |
-| `path` | String | 权限地址，仅 annotation-mode=path 时生效。 |
+| `value` | String 或 String[] | 需要的角色编码/权限 ID（与 id 等价），可为单个或多个。 |
+| `id` | String 或 String[] | 显式指定权限 ID，可为单个或多个。 |
+| `path` | String 或 String[] | 权限地址，仅 annotation-mode=path 时生效，可为单个或多个。 |
 
 ---
 

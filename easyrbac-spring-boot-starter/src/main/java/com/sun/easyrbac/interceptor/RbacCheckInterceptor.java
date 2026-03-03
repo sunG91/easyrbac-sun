@@ -5,16 +5,15 @@ import com.sun.easyrbac.annotation.RbacMethod;
 import com.sun.easyrbac.config.RbacProperties;
 import com.sun.easyrbac.constant.RbacConstants;
 import com.sun.easyrbac.service.RbacUserRoleService;
+import com.sun.easyrbac.util.RbacRoleEnumExtractor;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 角色校验拦截器：在 Filter 通过 Token 后，根据当前接口所需角色判断用户是否具备（满足其一即通过）。
@@ -63,31 +62,62 @@ public class RbacCheckInterceptor implements HandlerInterceptor {
 
     private List<String> resolveRequiredRoles(HandlerMethod hm) {
         RbacMethod methodRbac = AnnotationUtils.findAnnotation(hm.getMethod(), RbacMethod.class);
-        String methodRole = resolveRoleFromRbacMethod(methodRbac);
-        if (methodRole != null && !methodRole.isEmpty()) {
-            return Collections.singletonList(methodRole);
+        List<String> methodRoles = resolveRolesFromRbacMethod(methodRbac);
+        if (!methodRoles.isEmpty()) {
+            return methodRoles;
         }
         RbacController classRbac = AnnotationUtils.findAnnotation(hm.getBeanType(), RbacController.class);
-        String classRole = resolveRoleFromRbacController(classRbac);
-        if (classRole != null && !classRole.isEmpty()) {
-            return Collections.singletonList(classRole);
+        List<String> classRoles = resolveRolesFromRbacController(classRbac);
+        if (!classRoles.isEmpty()) {
+            return classRoles;
         }
         return Collections.emptyList();
     }
 
-    private String resolveRoleFromRbacMethod(RbacMethod a) {
-        if (a == null) return null;
-        if (a.value() != null && !a.value().isEmpty()) return a.value();
-        if (a.id() != null && !a.id().isEmpty()) return a.id();
-        if (a.path() != null && !a.path().isEmpty()) return a.path();
-        return null;
+    private List<String> resolveRolesFromRbacMethod(RbacMethod a) {
+        if (a == null) return Collections.emptyList();
+        List<String> base = mergeNonEmpty(a.value(), a.id(), a.path());
+        List<String> enumCodes = RbacRoleEnumExtractor.extractCodes(a.roleEnums());
+        if (enumCodes.isEmpty()) {
+            return base;
+        }
+        if (base.isEmpty()) {
+            return enumCodes;
+        }
+        List<String> merged = new java.util.ArrayList<>(base.size() + enumCodes.size());
+        merged.addAll(base);
+        merged.addAll(enumCodes);
+        return merged;
     }
 
-    private String resolveRoleFromRbacController(RbacController a) {
-        if (a == null) return null;
-        if (a.value() != null && !a.value().isEmpty()) return a.value();
-        if (a.id() != null && !a.id().isEmpty()) return a.id();
-        if (a.path() != null && !a.path().isEmpty()) return a.path();
-        return null;
+    private List<String> resolveRolesFromRbacController(RbacController a) {
+        if (a == null) return Collections.emptyList();
+        List<String> base = mergeNonEmpty(a.value(), a.id(), a.path());
+        List<String> enumCodes = RbacRoleEnumExtractor.extractCodes(a.roleEnums());
+        if (enumCodes.isEmpty()) {
+            return base;
+        }
+        if (base.isEmpty()) {
+            return enumCodes;
+        }
+        List<String> merged = new java.util.ArrayList<>(base.size() + enumCodes.size());
+        merged.addAll(base);
+        merged.addAll(enumCodes);
+        return merged;
+    }
+
+    private List<String> mergeNonEmpty(String[]... sources) {
+        List<String> result = new java.util.ArrayList<>();
+        for (String[] arr : sources) {
+            if (arr == null) continue;
+            for (String v : arr) {
+                if (v == null) continue;
+                String trimmed = v.trim();
+                if (!trimmed.isEmpty()) {
+                    result.add(trimmed);
+                }
+            }
+        }
+        return result;
     }
 }

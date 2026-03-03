@@ -442,6 +442,29 @@ rbac:
 
 > 启动时，框架会从该枚举中读取 `@RbacRole`，并与 `rbac.auto.role-mapping` 一起同步到角色表。
 
+#### 7.5 在 Controller 注解中使用角色枚举
+
+在使用枚举同步角色表的基础上，可以通过 `@RbacController` / `@RbacMethod` 的 `roleEnums` 字段，将这些枚举类中带 `@RbacRole` 的常量作为接口所需角色，无需在注解里重复写角色编码：
+
+```java
+import com.sun.easyrbac.annotation.RbacController;
+import com.sun.easyrbac.annotation.RbacMethod;
+
+@RestController
+@RequestMapping("/user")
+@RbacController(roleEnums = {AppRole.class})          // 类级默认角色来自 AppRole
+public class UserController {
+
+    @GetMapping("/list")
+    @RbacMethod(roleEnums = {AppRole.class})          // 方法级角色也来自 AppRole
+    public Result list() {
+        return Result.success();
+    }
+}
+```
+
+> 说明：`roleEnums` 是对原有 `value` / `id` / `path` 的补充，三者会合并后参与权限判断；现有基于字符串编码的写法保持完全兼容。
+
 #### 7.4 在业务代码中直接读取 RbacProperties
 
 ```java
@@ -466,4 +489,40 @@ public class RbacConfigPrinter {
 ```
 
 > 通过注入 `RbacProperties`，可以在代码中方便地读取 YAML 配置，用于日志、调试或二次封装；配置本身仍推荐通过 YAML/环境变量进行修改。
+
+---
+
+### 8. 一个接口多个角色/权限的 YAML 示例
+
+在模型设计上，一个接口（`RbacApi` 一条记录）对应一个权限 ID/path，**可以绑定到多个角色**。  
+接口的权限 ID/path 相同，只要用户拥有其中任意一个绑定到该接口的角色，即可通过校验（OR 关系）。
+
+配合 `RbacConfigAdminService.importFromYaml` / `exportToYaml` 使用时，可以在 YAML 中这样声明：
+
+```yaml
+roles:
+  - code: "10000"
+    name: "管理员"
+  - code: "10001"
+    name: "运营"
+
+apis:
+  - path: "/user/list"
+    method: "GET"
+    controller: "UserController"
+
+role-apis:
+  # 管理员可以访问 /user/list
+  - role-code: "10000"
+    api-path: "/user/list"
+  # 运营也可以访问 /user/list
+  - role-code: "10001"
+    api-path: "/user/list"
+```
+
+含义：
+
+- `/user/list` 这个接口只对应一个权限点（同一个 `path`），但同时出现在两条 `role-apis` 映射中；
+- 只要当前登录用户拥有角色 `10000` 或 `10001`，访问 `/user/list` 时就会被认为有权限；
+- 若需要新增第三个角色访问该接口，只需再追加一条 `role-apis` 记录绑定到相同的 `api-path` 即可。
 

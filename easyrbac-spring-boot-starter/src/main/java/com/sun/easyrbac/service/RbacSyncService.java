@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -147,7 +148,7 @@ public class RbacSyncService {
         }
     }
 
-    /** 扫描所有 Controller，收集 (apiPath -> 需要的角色编码集合) */
+    /** 扫描所有 Controller，收集 (apiPath -> 需要的角色编码集合)。支持注解上配置单个或多个角色/权限 ID。 */
     private Map<String, Set<String>> collectApiToRoleCodesFromControllers() {
         Map<String, Set<String>> apiPathToRoles = new LinkedHashMap<>();
         String scanPackages = properties.getAuto().getScanPackages();
@@ -170,44 +171,56 @@ public class RbacSyncService {
                 if (!inScope) continue;
             }
             RbacController classRbac = AnnotationUtils.findAnnotation(clazz, RbacController.class);
-            String classRoleId = resolveRoleFromAnnotation(classRbac);
+            Set<String> classRoles = resolveRolesFromAnnotation(classRbac);
 
             RequestMapping classReq = AnnotationUtils.findAnnotation(clazz, RequestMapping.class);
             String classPathPrefix = (classReq != null && classReq.value().length > 0) ? classReq.value()[0] : "";
 
             for (Method method : clazz.getMethods()) {
                 RbacMethod methodRbac = AnnotationUtils.findAnnotation(method, RbacMethod.class);
-                String methodRoleId = resolveRoleFromAnnotation(methodRbac);
-                String roleCode = (methodRoleId != null && !methodRoleId.isEmpty()) ? methodRoleId : classRoleId;
-                if (roleCode == null || roleCode.isEmpty()) {
-                    continue;
-                }
+                Set<String> methodRoles = resolveRolesFromAnnotation(methodRbac);
+                Set<String> rolesToUse = !methodRoles.isEmpty() ? methodRoles : classRoles;
+                if (rolesToUse.isEmpty()) continue;
 
                 String httpMethod = resolveHttpMethod(method);
                 String path = buildApiPath(clazz, method, classPathPrefix, pathFormat);
                 if (path == null) {
                     continue;
                 }
-                apiPathToRoles.computeIfAbsent(path, k -> new HashSet<>()).add(roleCode);
+                Set<String> target = apiPathToRoles.computeIfAbsent(path, k -> new HashSet<>());
+                target.addAll(rolesToUse);
             }
         }
         return apiPathToRoles;
     }
 
-    private String resolveRoleFromAnnotation(RbacController a) {
-        if (a == null) return null;
-        if (a.value() != null && !a.value().isEmpty()) return a.value();
-        if (a.id() != null && !a.id().isEmpty()) return a.id();
-        if (a.path() != null && !a.path().isEmpty()) return a.path();
-        return null;
+    private Set<String> resolveRolesFromAnnotation(RbacController a) {
+        Set<String> result = new LinkedHashSet<>();
+        if (a == null) return result;
+        addNonEmpty(result, a.value());
+        addNonEmpty(result, a.id());
+        addNonEmpty(result, a.path());
+        return result;
     }
 
-    private String resolveRoleFromAnnotation(RbacMethod a) {
-        if (a == null) return null;
-        if (a.value() != null && !a.value().isEmpty()) return a.value();
-        if (a.id() != null && !a.id().isEmpty()) return a.id();
-        if (a.path() != null && !a.path().isEmpty()) return a.path();
-        return null;
+    private Set<String> resolveRolesFromAnnotation(RbacMethod a) {
+        Set<String> result = new LinkedHashSet<>();
+        if (a == null) return result;
+        addNonEmpty(result, a.value());
+        addNonEmpty(result, a.id());
+        addNonEmpty(result, a.path());
+        return result;
+    }
+
+    private void addNonEmpty(Set<String> target, String[] values) {
+        if (values == null || values.length == 0) return;
+        for (String v : values) {
+            if (v == null) continue;
+            String trimmed = v.trim();
+            if (!trimmed.isEmpty()) {
+                target.add(trimmed);
+            }
+        }
     }
 
     private String resolveHttpMethod(Method method) {
