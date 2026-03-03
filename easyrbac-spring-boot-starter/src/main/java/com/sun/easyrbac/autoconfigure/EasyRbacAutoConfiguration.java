@@ -18,6 +18,8 @@ import com.sun.easyrbac.support.*;
 import com.sun.easyrbac.interceptor.RbacCheckInterceptor;
 import com.sun.easyrbac.token.InternalTokenValidator;
 import com.sun.easyrbac.token.JwtTokenValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -47,6 +49,8 @@ import java.util.List;
 @ConditionalOnClass(JdbcTemplate.class)
 @EnableConfigurationProperties(RbacProperties.class)
 public class EasyRbacAutoConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(EasyRbacAutoConfiguration.class);
 
     @Bean
     @ConditionalOnProperty(prefix = "rbac", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -135,6 +139,20 @@ public class EasyRbacAutoConfiguration {
                                             RbacProperties properties) {
         org.springframework.data.redis.core.StringRedisTemplate template = redisTemplate.getIfAvailable();
         if (template == null) return new NoOpRbacRoleCache();
+        // 尝试打印 Redis 连接信息（无论是应用自配的还是 EasyRBAC 自动创建的）
+        try {
+            var factory = template.getConnectionFactory();
+            if (factory instanceof org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory lf) {
+                String host = lf.getHostName();
+                int port = lf.getPort();
+                int db = lf.getDatabase();
+                log.info("[EasyRBAC] Redis 角色缓存已启用，使用连接 redis://{}:{}/db{}", host, port, db);
+            } else {
+                log.info("[EasyRBAC] Redis 角色缓存已启用，使用连接工厂类型：{}", (factory != null ? factory.getClass().getName() : "null"));
+            }
+        } catch (Exception ignore) {
+            // 日志打印失败不影响正常功能
+        }
         return new com.sun.easyrbac.cache.RedisRbacRoleCache(template, properties);
     }
 

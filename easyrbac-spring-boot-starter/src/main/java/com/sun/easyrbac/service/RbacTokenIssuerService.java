@@ -90,11 +90,32 @@ public class RbacTokenIssuerService {
         if (result == null) {
             return null;
         }
-        cacheLoginState(result.getUserId(), result.getToken());
+        cacheLoginState(result.getUserId(), result.getToken(), null);
         return result;
     }
 
-    private void cacheLoginState(String userId, String token) {
+    /**
+     * 为指定用户签发 Token，并在启用 Redis 时自动将登录态写入 Redis，允许追加自定义扩展对象。
+     * <p>
+     * - 当 extra 为 null 时，value 为 userId（与 {@link #issueTokenAndCache(Object)} 一致）
+     * - 当 extra 不为 null 时，value 为一个简单的 JSON 字符串：
+     *   {"userId":"...","extra":"extra.toString() 的结果"}
+     *
+     * @param userId 用户唯一标识
+     * @param extra  需要一并缓存的扩展对象（可选，会使用其 toString() 结果）
+     * @return internal 类型时返回 token 信息；jwt 类型或其他情况返回 null
+     */
+    @Nullable
+    public RbacTokenResult issueTokenAndCache(Object userId, @Nullable Object extra) {
+        RbacTokenResult result = issueToken(userId);
+        if (result == null) {
+            return null;
+        }
+        cacheLoginState(result.getUserId(), result.getToken(), extra);
+        return result;
+    }
+
+    private void cacheLoginState(String userId, String token, @Nullable Object extra) {
         if (redisTemplate == null) {
             // 未启用 Redis 时忽略
             return;
@@ -114,9 +135,42 @@ public class RbacTokenIssuerService {
                 key = prefix + userId;
             }
             long expireSeconds = redis.getExpireTime() > 0 ? redis.getExpireTime() : 7200;
-            redisTemplate.opsForValue().set(key, userId, Duration.ofSeconds(expireSeconds));
+            String value = buildValue(userId, extra);
+            redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(expireSeconds));
         } catch (Exception e) {
             log.warn("[EasyRBAC] Redis cache login state error: {}", e.getMessage());
         }
+    }
+
+    private String buildValue(String userId, @Nullable Object extra) {
+        if (extra == null) {
+            return userId;
+        }
+        String extraStr = String.valueOf(extra);
+        return "{\"userId\":\"" + escapeJson(userId) + "\",\"extra\":\"" + escapeJson(extraStr) + "\"}";
+    }
+
+    private static String escapeJson(String s) {
+        if (s == null) return "";
+        StringBuilder sb = new StringBuilder(s.length() + 16);
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '\\' || c == '"') {
+                sb.append('\\').append(c);
+            } else if (c == '\b') {
+                sb.append("\\b");
+            } else if (c == '\f') {
+                sb.append("\\f");
+            } else if (c == '\n') {
+                sb.append("\\n");
+            } else if (c == '\r') {
+                sb.append("\\r");
+            } else if (c == '\t') {
+                sb.append("\\t");
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 }
