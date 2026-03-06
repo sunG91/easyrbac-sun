@@ -1,12 +1,12 @@
-# EasyRBAC 1.0.0 API 文档
+# EasyRBAC API 文档
 
-本文档列出框架内所有对外可用的**服务方法、扩展点、注解、模型与常量**，便于集成时功能用全。调用方式、逻辑、参数与注释均按代码整理。
+框架对外可用的服务、扩展点、注解和常量，按使用频率整理。需要查方法签名或参数时直接翻这里。
 
 ---
 
-## 一、业务服务（推荐直接注入使用）
+## 业务服务（直接注入用）
 
-以下服务由框架自动注册为 Spring Bean，业务中 `@Autowired` 注入即可调用。
+框架自动注册，`@Autowired` 注入即可。
 
 ---
 
@@ -27,9 +27,6 @@ private RbacTokenIssuerService rbacTokenIssuerService;
 | `issueToken(Object userId)` | `RbacTokenResult` 或 `null` | `userId`：用户唯一标识，可为 String、Long、Integer 等 | 为指定用户签发 Token。`type=internal` 时返回完整结果（内部统一转为字符串存储）；`type=jwt` 时返回 `null`，需业务用自有 JWT 库签发。 |
 | `issueTokenAndCache(Object userId)` | `RbacTokenResult` 或 `null` | `userId`：用户唯一标识 | 为指定用户签发 Token，并在启用 Redis 时将登录态与当前角色列表写入 Redis。登录态 key 由 `rbac.check.redis.key-prefix` 与 `key-by` 决定（默认 `rbac:login:userId`），value 为包含 `userId` 与 `roles` 的 JSON。 |
 | `issueTokenAndCache(Object userId, Object extra)` | `RbacTokenResult` 或 `null` | `userId`：用户唯一标识；`extra`：扩展对象 | 同上，同时将 `extra.toString()` 写入 JSON 的 `extra` 字段，便于记录设备、IP 等额外信息。 |
-
-**逻辑简述**：根据 `rbac.check.type` 决定是否由框架生成 Token；internal 时调用内部 `RbacTokenValidator.generate(userId)`（内部用 `String.valueOf(userId)` 写入），并封装为 `RbacTokenResult`（含 token、type、expireSeconds、userId 字符串）。  
-启用 Redis 且通过 `issueTokenAndCache` 调用时，框架会按配置写入登录态（key-by=userId 或 token），value 为 `{"userId":"...","roles":[...],"extra":"..."}` 形式的 JSON，并通过 `RbacUserRoleService.getRoles` 预热用户角色缓存；后续请求若 Token 校验通过但 Redis 中不存在对应登录态，则直接视为未登录。
 
 ---
 
@@ -61,7 +58,7 @@ private RbacUserRoleService rbacUserRoleService;
 
 **包名**：`com.sun.easyrbac.service.RbacConfigAdminService`
 
-**作用**：运行时配置管理：角色/接口/角色-接口关系的增删与 YAML 导入导出。用于管理后台、备份与迁移。
+**作用**：运行时管理角色、接口及其绑定关系，支持 YAML 导入导出。适合做管理后台、配置备份。
 
 **注入方式**：
 ```java
@@ -93,7 +90,7 @@ role-apis:
 
 ---
 
-## 二、可选注入的接口（高级用法）
+## 二、可选注入（高级用法）
 
 ---
 
@@ -114,7 +111,7 @@ private RbacTokenValidator rbacTokenValidator;
 | `validate(String token)` | `String` 或 `null` | `token`：请求中解析出的 token 字符串 | 校验 token 是否有效（签名、未过期等）。有效则返回解析出的用户标识（如 userId），否则返回 null。 |
 | `generate(Object userId)` | `String` 或 `null` | `userId`：用户唯一标识，可为 String、Long、Integer 等，内部会转为字符串存储 | 签发 token，将用户标识写入，返回 token 字符串。Internal 实现会生成；JWT 实现当前返回 null，需业务用 JWT 库签发。 |
 
-**说明**：日常登录签发推荐使用 `RbacTokenIssuerService.issueToken(userId)`，无需直接调用 `generate`。用户标识类型可在配置中声明：`rbac.check.internal.user-identifier-type`（string/long/integer）。
+日常用 `RbacTokenIssuerService.issueToken(userId)` 即可，一般不用直接调 `generate`。
 
 ---
 
@@ -376,9 +373,9 @@ public enum AppRole {
 
 ---
 
-## 六、仓储接口（框架内部使用，可选注入）
+## 六、仓储接口（内部用，可选）
 
-以下为 core 层定义的仓储接口，由 starter 提供 JDBC 实现并注册为 Bean。业务一般通过 `RbacUserRoleService`、`RbacConfigAdminService` 间接使用；若需直接操作表可注入使用。
+core 层定义，starter 提供 JDBC 实现。一般通过 `RbacUserRoleService`、`RbacConfigAdminService` 间接用；要直接操作表可注入。
 
 ---
 
